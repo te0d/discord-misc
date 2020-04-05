@@ -1,82 +1,90 @@
 import discord
 import inflect
+import logging
 import re
 
-from argparser import parser
+from argparser import parser, subparsers
+from player import Player
 
-shortcutRegex = re.compile(r'^/res\b\s*(?P<args>.*)', re.IGNORECASE)
 plu = inflect.engine()
+shortcut_regex = re.compile(r"^;;\s*(?P<args>.*)", re.IGNORECASE)
 
-STATE = {
+PLAYERS = {
 }
 
 class ResourcefulClient(discord.Client):
     async def on_ready(self):
-        print('Logged on as {0}!'.format(self.user))
+        logging.info("Logged on as {0}!".format(self.user))
 
     async def on_message(self, message):
-        match = shortcutRegex.match(message.content)
-        if match:
-            print('Recognized message from {0.author}: {0.content}'.format(message))
+        # Check for command
+        match = shortcut_regex.match(message.content)
+        if (not match):
+            return
 
-            fullArgs = match.group('args')
-            try:
-                args = parser.parse_args(match.group('args').split())
-            except ValueError as err:
-                await message.channel.send(err)
-                return
+        logging.debug("Recognized command from {0.author}: {0.content}".format(message))
 
-            if (args.command is None):
-                await message.channel.send(parser.print_help())
-                return
+        # Parse arguments
+        try:
+            raw_args = parser.convert_arg_line_to_args(match.group("args"))
+            args = parser.parse_args(raw_args)
+        except ValueError as err:
+            await message.channel.send(err)
+            return
 
-            if (args.command == 'list' or args.command == 'l'):
-                await message.channel.send(self.list(message.author))
-            elif (args.command == 'add'or args.command == 'a'):
-                item = ' '.join(args.item)
-                item = plu.singular_noun(item) or item
-                self.add(message.author, item, args.count)
-            elif (args.command == 'drop' or args.command == 'd'):
-                item = ' '.join(args.item)
-                item = plu.singular_noun(item) or item
-                self.drop(message.author, item, args.count)
+        # Perform action
+        player = self.get_player(message.author)
+        if (args.command is None):
+            help_msg = "```\n{0}\n```".format(parser.format_help())
+            await message.channel.send(help_msg)
+        else:
+            response = args.action(player, args)
+            if (response):
+                await message.channel.send(response)
 
-    def list(self, user):
+    def get_player(self, user):
         username = str(user)
-        if (not username in STATE or len(STATE[username].items()) == 0):
-            return user.display_name + ' has no stuff.'
+        if (not username in PLAYERS):
+            logging.info("Adding new user: {0}".format(username))
+            PLAYERS[username] = Player(user)
 
-        output = user.display_name + '\'s stuff:\n```\n'
-        for item, props in STATE[username].items():
-            output += '{:10.0f}'.format(props['count']) + ' ' + plu.plural(item, props['count']) + '\n'
+        return PLAYERS[username]
 
-        output += '```'
+    def help(self, player, args):
+        help_parser = subparsers.choices[args.topic] if args.topic else parser
+        help_msg = "```\n{0}\n```".format(help_parser.format_help())
+        return help_msg
+
+    def list(self, player, args):
+        output = ""
+        items = player.inv.items
+        if (len(items) == 0):
+            output = "{0} doesn't have any stuff".format(player.display_name)
+        else:
+            output = "{0}'s stuff:\n```\n".format(player.display_name)
+            for name in items:
+                count = items[name].count
+                output += "{:10.0f} {}\n".format(count, plu.plural(name, count))
+
+            output += "```"
+
         return output
 
-    def add(self, user, item, count):
-        username = str(user)
-        item = plu.singular_noun(item) or item
+    def add(self, player, args):
+        item = " ".join(args.item)
+        player.inv.add(item, args.count)
+        return None
 
-        if (not username in STATE):
-            STATE[username] = {}
+    def drop(self, player, args):
+        item = " ".join(args.item)
+        player.inv.drop(item, args.count)
+        return None
 
-        if (not item in  STATE[username]):
-            STATE[username][item] = { 'count': 0 }
-
-        if (count == None):
-            count = 1
-
-        STATE[username][item]['count'] += count
-
-    def drop(self, user, item, count):
-        username = str(user)
-        if (count == None):
-            count = 1
-
-        if (username in STATE and item in STATE[username]):
-            STATE[username][item]['count'] -= count
-            if STATE[username][item]['count'] <= 0:
-                del STATE[username][item]
-
+# Create discord client and hook-up sub-commands
 client = ResourcefulClient()
-client.run('Njk1NDY1NjQ5NjE0MzU2NTIw.XoamxQ.EKYprVdf7naBU1uS-Wcffxu12Ko')
+subparsers.choices["help"].set_defaults(action=client.help)
+subparsers.choices["list"].set_defaults(action=client.list)
+subparsers.choices["add"].set_defaults(action=client.add)
+subparsers.choices["drop"].set_defaults(action=client.drop)
+
+client.run("Njk1NDY1NjQ5NjE0MzU2NTIw.XoamxQ.EKYprVdf7naBU1uS-Wcffxu12Ko")
