@@ -17,7 +17,9 @@ parser_help.add_argument("topic",
                          nargs="?",
                          help="name of subcommand")
 
-parser_list = subparsers.add_parser("list", aliases=["l"], add_help=False, help="list possessions")
+## Inventory ##
+
+parser_inv = subparsers.add_parser("inv", aliases=["i"], add_help=False, help="list possessions")
 
 parser_add = subparsers.add_parser("add", aliases=["a"], add_help=False, help="add possessions")
 parser_add.add_argument("-c", "--count",
@@ -38,3 +40,28 @@ parser_drop.add_argument("item",
                     type=str,
                     nargs="+",
                     help="name of item")
+
+## Cards ##
+
+parser_cards = subparsers.add_parser("cards", aliases=["c"], add_help=False, help="put decks into play and get info")
+parser_cards_group = parser_cards.add_mutually_exclusive_group()
+parser_cards_group.add_argument("-i", "--init",
+                          metavar='DECKNAME',
+                          type=str,
+                          help="name of deck to put into play")
+parser_cards_group.add_argument("-d", "--deck",
+                          metavar='DECKINDEX',
+                          type=int,
+                          help="display info about deck on tabletop")
+
+parser_draw = subparsers.add_parser("draw", add_help=False, help="draw a card to your hand")
+parser_draw.add_argument("-d", "--deck",
+                         metavar='DECKINDEX',
+                         type=int,
+                         help="index of deck in play to draw a card from")
+
+parser_hand = subparsers.add_parser("hand", add_help=False, help="look at and play your cards")
+parser_hand.add_argument("-p", "--play",
+                         metavar='CARDINDEX',
+                         type=int,
+                         help="index of hand card to play to table")

@@ -5,11 +5,21 @@ import re
 
 from argparser import parser, subparsers
 from player import Player
+from cards import CardDeck, Tabletop
+from output import Output
+
+import codex.catan
+import codex.standard
 
 plu = inflect.engine()
 shortcut_regex = re.compile(r"^;;\s*(?P<args>.*)", re.IGNORECASE)
 
+TABLETOP = Tabletop()
 PLAYERS = {
+}
+DECKS = {
+    "catan_development": codex.catan.developmentDefinition,
+    "standard": codex.standard.definition,
 }
 
 class ResourcefulClient(discord.Client):
@@ -38,9 +48,11 @@ class ResourcefulClient(discord.Client):
             help_msg = "```\n{0}\n```".format(parser.format_help())
             await message.channel.send(help_msg)
         else:
-            response = args.action(player, args)
-            if (response):
-                await message.channel.send(response)
+            output = args.action(player, args)
+            if (output and output.private):
+                await message.author.send(output.message)
+            elif (output):
+                await message.channel.send(output.message)
 
     def get_player(self, user):
         username = str(user)
@@ -53,9 +65,9 @@ class ResourcefulClient(discord.Client):
     def help(self, player, args):
         help_parser = subparsers.choices[args.topic] if args.topic else parser
         help_msg = "```\n{0}\n```".format(help_parser.format_help())
-        return help_msg
+        return Output(False, help_msg)
 
-    def list(self, player, args):
+    def inv(self, player, args):
         output = ""
         items = player.inv.items
         if (len(items) == 0):
@@ -68,7 +80,7 @@ class ResourcefulClient(discord.Client):
 
             output += "```"
 
-        return output
+        return Output(False, output)
 
     def add(self, player, args):
         item = " ".join(args.item)
@@ -80,11 +92,79 @@ class ResourcefulClient(discord.Client):
         player.inv.drop(item, args.count)
         return None
 
+    def cards(self, player, args):
+        if (args.init):
+            output = self.cards_init(player, args)
+        else:
+            output = self.cards_list(player, args)
+
+        return output
+
+    def cards_init(self, player, args):
+        deck_def = DECKS[args.init]
+        index = len(TABLETOP.decks)
+        deck = CardDeck(deck_def["name"], deck_def, index)
+        TABLETOP.decks.append(deck)
+
+    def cards_list(self, player, args):
+        if (args.deck is not None):
+            deck = TABLETOP.decks[args.deck]
+            output = "```\n{0}: '{1}'\n   {2} stock, {3} discard\n```".format(args.deck, deck.name, len(deck.stock), len(deck.discard))
+        else:
+            output = "```\nAvailable Decks:\n"
+            for name in DECKS:
+                output += "* {}\n".format(name)
+
+            output += "\nDecks In Play:\n"
+            for n in range(len(TABLETOP.decks)):
+                deck = TABLETOP.decks[n]
+                output += "[{0}] {1}\n".format(n, deck.name)
+
+            output += "```"
+
+        return Output(False, output)
+
+    def draw(self, player, args):
+        if (args.deck is not None):
+            deck = TABLETOP.decks[args.deck]
+        else:
+            deck = TABLETOP.decks[0]
+
+        player.draw(deck.draw())
+
+    def hand(self, player, args):
+        if (args.play is not None):
+            output = self.hand_play(player, args)
+        else:
+            output = self.hand_list(player, args)
+
+        return output
+
+    def hand_list(self, player, args):
+        if (len(player.hand.cards) == 0):
+            output = "You don't have any cards."
+        else:
+            output = "```\n{0}\n```".format(str(player.hand))
+
+        return Output(True, output)
+
+    def hand_play(self, player, args):
+        card = player.hand.play(args.play)
+        targetDeck = TABLETOP.decks[card.deck_index]
+        targetDeck.discard.append(card)
+        output = "{0} played {1}! *({2})*".format(player.display_name, card, card.description)
+        return Output(False, output)
+
 # Create discord client and hook-up sub-commands
 client = ResourcefulClient()
 subparsers.choices["help"].set_defaults(action=client.help)
-subparsers.choices["list"].set_defaults(action=client.list)
+
+subparsers.choices["inv"].set_defaults(action=client.inv)
 subparsers.choices["add"].set_defaults(action=client.add)
 subparsers.choices["drop"].set_defaults(action=client.drop)
+
+subparsers.choices["cards"].set_defaults(action=client.cards)
+subparsers.choices["draw"].set_defaults(action=client.draw)
+subparsers.choices["hand"].set_defaults(action=client.hand)
 
 client.run("Njk1NDY1NjQ5NjE0MzU2NTIw.XoamxQ.EKYprVdf7naBU1uS-Wcffxu12Ko")
