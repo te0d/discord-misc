@@ -1,6 +1,7 @@
 import discord
 import inflect
 import logging
+import random
 import re
 
 from argparser import parser, subparsers
@@ -13,6 +14,7 @@ import codex.standard
 
 plu = inflect.engine()
 shortcut_regex = re.compile(r"^;;\s*(?P<args>.*)", re.IGNORECASE)
+dice_roll_regex = re.compile(r"^(?P<count>\d*)d(?P<sides>\d+)$", re.IGNORECASE)
 
 TABLETOP = Tabletop()
 PLAYERS = {
@@ -155,6 +157,28 @@ class ResourcefulClient(discord.Client):
         output = "{0} played {1}! *({2})*".format(player.display_name, card, card.description)
         return Output(False, output)
 
+    def roll(self, player, args):
+        output = "```\n"
+        dice = args.dice
+        match = dice_roll_regex.match(dice)
+        output += "{0}:\n".format(dice)
+        count = int(match.group("count")) if match.group("count") else 1
+        sides = int(match.group("sides"))
+        if (count > 100):
+            return Output(False, "Sorry, I am unable to roll so many explicable dice.")
+        elif (sides > 1000000000000):
+            return Output(False, "Sorry, I have not dice with so many luscious sides.")
+
+        rolls = []
+        for n in range(count):
+            roll = "[{}]".format(random.randrange(sides)+1) # how efficient
+            rolls.append(roll)
+
+        output += " ".join(rolls) + "\n```"
+
+        return Output(False, output)
+
+
 # Create discord client and hook-up sub-commands
 client = ResourcefulClient()
 subparsers.choices["help"].set_defaults(action=client.help)
@@ -166,5 +190,7 @@ subparsers.choices["drop"].set_defaults(action=client.drop)
 subparsers.choices["cards"].set_defaults(action=client.cards)
 subparsers.choices["draw"].set_defaults(action=client.draw)
 subparsers.choices["hand"].set_defaults(action=client.hand)
+
+subparsers.choices["roll"].set_defaults(action=client.roll)
 
 client.run("Njk1NDY1NjQ5NjE0MzU2NTIw.XoamxQ.EKYprVdf7naBU1uS-Wcffxu12Ko")

@@ -65,3 +65,10 @@ parser_hand.add_argument("-p", "--play",
                          metavar='CARDINDEX',
                          type=int,
                          help="index of hand card to play to table")
+
+## Dice ##
+
+parser_roll = subparsers.add_parser("roll", aliases=["r"], add_help=False, help="roll some dice")
+parser_roll.add_argument("dice",
+                         type=str,
+                         help="dice to roll like, e.g. 3d6")
