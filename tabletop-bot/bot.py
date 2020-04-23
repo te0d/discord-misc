@@ -5,9 +5,10 @@ import random
 import re
 
 from argparser import parser, subparsers
-from player import Player
 from cards import CardDeck, Tabletop
+from config import discord_bot_token
 from output import Output
+from player import Player
 
 import codex.catan
 import codex.standard
@@ -193,4 +194,4 @@ subparsers.choices["hand"].set_defaults(action=client.hand)
 
 subparsers.choices["roll"].set_defaults(action=client.roll)
 
-client.run("Njk1NDY1NjQ5NjE0MzU2NTIw.XoamxQ.EKYprVdf7naBU1uS-Wcffxu12Ko")
+client.run(discord_bot_token)
