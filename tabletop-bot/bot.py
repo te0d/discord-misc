@@ -13,7 +13,7 @@ import codex.catan
 import codex.standard
 
 plu = inflect.engine()
-shortcut_regex = re.compile(r"^;;\s*(?P<args>.*)", re.IGNORECASE)
+shortcut_regex = re.compile(r"^%\s*(?P<args>.*)", re.IGNORECASE)
 dice_roll_regex = re.compile(r"^(?P<count>\d*)d(?P<sides>\d+)$", re.IGNORECASE)
 
 TABLETOP = Tabletop()

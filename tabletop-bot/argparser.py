@@ -7,7 +7,7 @@ class BotArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         raise ValueError(message)
 
-parser = BotArgumentParser(prog=";;", description="loot bot", add_help=False)
+parser = BotArgumentParser(prog="%", description="loot bot", add_help=False)
 
 subparsers = parser.add_subparsers(dest="command", help="sub-command help")
 

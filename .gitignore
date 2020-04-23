@@ -1,3 +1,9 @@
+## LOCAL ##
+
+# it's where we keep our secrets
+config.py
+
+
 ## Python ##
 
 # Byte-compiled / optimized / DLL files
