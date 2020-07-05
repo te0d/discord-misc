@@ -1,4 +1,7 @@
 import config
+import json
+import requests
+import urllib
 import wikipedia
 
 from discord import Embed
@@ -37,7 +40,8 @@ async def rules(ctx):
 async def wiki(ctx, *query):
     try:
         async with ctx.channel.typing():
-            result = wikipedia.page(' '.join(query))
+            sanitized_query = urllib.parse.quote(' '.join(query))
+            result = wikipedia.page(sanitized_query)
     except:
         await ctx.send("Whoopsie daisy! I don't know what happened but whatever it was didn't work.")
         raise
@@ -53,5 +57,29 @@ async def test(ctx):
     embed_message = Embed(title="Test Embed", description="This is simply a test embed and nothing more.")
     embed_message.set_thumbnail(url="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Bow_bow.jpg/160px-Bow_bow.jpg")
     await ctx.send(embed=embed_message)
+
+@bot.command()
+async def preach(ctx, *query):
+    try:
+        if len(query) == 0:
+            raise
+
+        async with ctx.channel.typing():
+            sanitized_query = urllib.parse.quote(' '.join(query))
+            response = requests.get('https://bible-api.com/' + sanitized_query)
+            if response.status_code != 200:
+                raise
+    except:
+        await ctx.send("Doh! I don't know that one.")
+        raise
+
+    text = response.json()['text']
+    if len(text) > 1991:
+        text = text[:1991] + "..."
+
+    message = "```" + text + "```"
+
+    # embed_message = Embed(title=' '.join(query).title(), description=text[:2048])
+    await ctx.send(message)
 
 bot.run(config.DiscordBotToken)
