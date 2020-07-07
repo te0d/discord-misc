@@ -13,8 +13,13 @@ newsapi = NewsApiClient(api_key=config.NewsApiToken)
 bot = commands.Bot(command_prefix='$')
 
 @bot.command()
-async def news(ctx, *sources):
-    source = sources[0] if len(sources) > 0 else "bbc-news"
+async def news(ctx, *source):
+    """Query news via https://newsapi.org/
+
+    Arguments:
+    source -- string corresponding to newsapi source
+    """
+    source = source[0] if len(source) > 0 else "bbc-news"
     try:
         async with ctx.channel.typing():
             headlines = newsapi.get_top_headlines(sources=source)["articles"]
@@ -34,13 +39,19 @@ async def news(ctx, *sources):
 
 @bot.command()
 async def rules(ctx):
+    """Define the rules of conversation"""
     await ctx.send("The rules of conversation are, in general, not to dwell on any one subject, but to pass lightly from one to another without effort and without affectation; to know how to speak about trivial topics as well as serious ones;")
 
 @bot.command()
-async def wiki(ctx, *query):
+async def wiki(ctx, *page):
+    """Query wikipedia
+
+    Arguments:
+    page -- name of page (very sensitive, problematic)
+    """
     try:
         async with ctx.channel.typing():
-            sanitized_query = urllib.parse.quote(' '.join(query))
+            sanitized_query = urllib.parse.quote(' '.join(page))
             result = wikipedia.page(sanitized_query)
     except:
         await ctx.send("Whoopsie daisy! I don't know what happened but whatever it was didn't work.")
@@ -54,18 +65,24 @@ async def wiki(ctx, *query):
 
 @bot.command()
 async def test(ctx):
+    """Doggo"""
     embed_message = Embed(title="Test Embed", description="This is simply a test embed and nothing more.")
     embed_message.set_thumbnail(url="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Bow_bow.jpg/160px-Bow_bow.jpg")
     await ctx.send(embed=embed_message)
 
 @bot.command()
-async def preach(ctx, *query):
+async def preach(ctx, *verses):
+    """Query bible via https://bible-api.com/
+
+    Arguments:
+    verses -- name of book followed by chapter and verse
+    """
     try:
-        if len(query) == 0:
+        if len(verses) == 0:
             raise
 
         async with ctx.channel.typing():
-            sanitized_query = urllib.parse.quote(' '.join(query))
+            sanitized_query = urllib.parse.quote(' '.join(verses))
             response = requests.get('https://bible-api.com/' + sanitized_query)
             if response.status_code != 200:
                 raise
@@ -79,7 +96,6 @@ async def preach(ctx, *query):
 
     message = "```" + text + "```"
 
-    # embed_message = Embed(title=' '.join(query).title(), description=text[:2048])
     await ctx.send(message)
 
 bot.run(config.DiscordBotToken)
