@@ -57,7 +57,7 @@ multidict==4.7.5
 murmurhash==1.0.2
 netifaces==0.10.4
 nltk==3.5
-numpy==1.18.2
+numpy==1.22.0
 oauthlib==3.1.0
 olefile==0.45.1
 opencv-contrib-python==4.2.0.32
